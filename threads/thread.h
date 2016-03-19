@@ -58,6 +58,7 @@
 
 // Thread state
 enum ThreadStatus { JUST_CREATED, RUNNING, READY, BLOCKED };
+static char *threadStatusStr[] = {"JUST_CREATED", "RUNNING", "READY", "BLOCKED"};
 
 // external function, dummy routine whose sole job is to call Thread::Print
 extern void ThreadPrint(int arg);	 
@@ -73,15 +74,22 @@ extern void ThreadPrint(int arg);
 //  Some threads also belong to a user address space; threads
 //  that only run in the kernel have a NULL address space.
 
+// the max allowed number of threads
+#define MAX_ALLOWED_THREAD 128
+
+
+// the class thread has been modified by thread
 class Thread {
   private:
     // NOTE: DO NOT CHANGE the order of these first two members.
     // THEY MUST be in this position for SWITCH to work.
     int* stackTop;			 // the current stack pointer
     int machineState[MachineStateSize];  // all registers except for stackTop
+	int userId,threadId;
+	static Thread* threadPool[MAX_ALLOWED_THREAD];		// index is the thread ID
 
   public:
-    Thread(char* debugName);		// initialize a Thread 
+    Thread(char* debugName,int userId=0);		// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
 					// must not be running when delete 
@@ -101,6 +109,12 @@ class Thread {
     void setStatus(ThreadStatus st) { status = st; }
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
+	
+	//print the info of a thread and also all created threads, implmented by zz
+	void PrintThreadInfo(){
+		printf("%-15s%-5d%-5d%-9s\n",name,threadId,userId,threadStatusStr[status]);
+	}
+	static void ListAllThreads();
 
   private:
     // some of the private data for this class is listed above

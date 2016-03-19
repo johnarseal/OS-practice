@@ -25,6 +25,12 @@
 					// stack overflows
 
 //----------------------------------------------------------------------
+// initialize all thread pointer to null
+//----------------------------------------------------------------------
+
+Thread* Thread::threadPool[] = {NULL};					
+					
+//----------------------------------------------------------------------
 // Thread::Thread
 // 	Initialize a thread control block, so that we can then call
 //	Thread::Fork.
@@ -32,7 +38,7 @@
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName)
+Thread::Thread(char* threadName, int a_userId)
 {
     name = threadName;
     stackTop = NULL;
@@ -41,6 +47,20 @@ Thread::Thread(char* threadName)
 #ifdef USER_PROGRAM
     space = NULL;
 #endif
+// find a threadId available
+	int i; 
+	for(i = 0; i < MAX_ALLOWED_THREAD; i++) {
+		if(threadPool[i] == NULL) {
+			threadPool[i] = this;
+			threadId = i;
+			break;
+		}
+	}
+// at most 128 threads can exist
+	ASSERT(i < MAX_ALLOWED_THREAD);
+// userId = 0, as default
+	userId = a_userId;
+	
 }
 
 //----------------------------------------------------------------------
@@ -59,10 +79,31 @@ Thread::~Thread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
-    ASSERT(this != currentThread);
+    threadPool[threadId] = NULL;
+	ASSERT(this != currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
 }
+
+//----------------------------------------------------------------------
+// Thread::ListAllThreads
+// 	print all threads in the pool
+//----------------------------------------------------------------------
+void Thread::ListAllThreads()
+{
+	printf("here lists all the thread info\n");
+	printf("NAME           TID  UID  STATUS   \n");
+	for(int i = 0; i < MAX_ALLOWED_THREAD; i++) {
+		if(threadPool[i] != NULL) {
+			threadPool[i]->PrintThreadInfo();
+		}
+	}
+}
+
+
+
+
+
 
 //----------------------------------------------------------------------
 // Thread::Fork

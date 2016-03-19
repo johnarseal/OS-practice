@@ -30,7 +30,8 @@ SimpleThread(int which)
     int num;
     
     for (num = 0; num < 5; num++) {
-	printf("*** thread %d looped %d times\n", which, num);
+		printf("*** thread %d looped %d times\n", which, num);
+		Thread::ListAllThreads();
         currentThread->Yield();
     }
 }
@@ -50,6 +51,7 @@ ThreadTest1()
 
     t->Fork(SimpleThread, 1);
     SimpleThread(0);
+	
 }
 
 //----------------------------------------------------------------------
