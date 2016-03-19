@@ -87,9 +87,10 @@ class Thread {
     int machineState[MachineStateSize];  // all registers except for stackTop
 	int userId,threadId;
 	static Thread* threadPool[MAX_ALLOWED_THREAD];		// index is the thread ID
+	int priority;
 
   public:
-    Thread(char* debugName,int userId=0);		// initialize a Thread 
+    Thread(char* debugName,int userId=0, int priority=0);		// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
 					// must not be running when delete 
@@ -103,12 +104,15 @@ class Thread {
     void Sleep();  				// Put the thread to sleep and 
 						// relinquish the processor
     void Finish();  				// The thread is done executing
-    
+	
     void CheckOverflow();   			// Check if thread has 
 						// overflowed its stack
     void setStatus(ThreadStatus st) { status = st; }
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
+	
+	int getPriority(){return priority;}
+	int getThreadId(){return threadId;}
 	
 	//print the info of a thread and also all created threads, implmented by zz
 	void PrintThreadInfo(){

@@ -30,7 +30,7 @@ SWITCH:
         movl 8(%esp),%eax # move pointer to t2 into eax
         movl 4(%eax),%ebx # get new value for eax into ebx
         movl %ebx,_eax_save # save it
-        movl 8(%eax),%ebx # retore old registers
+        movl 8(%eax),%ebx # restore old registers
         movl 12(%eax),%ecx
         movl 16(%eax),%edx
         movl 24(%eax),%esi

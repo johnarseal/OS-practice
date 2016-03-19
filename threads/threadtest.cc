@@ -13,7 +13,7 @@
 #include "system.h"
 
 // testnum is set in main.cc
-int testnum = 1;
+int testnum = 2;
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -36,6 +36,20 @@ SimpleThread(int which)
     }
 }
 
+void
+SimpleThread2(int test2num)
+{
+	if(test2num == 0)
+	{
+		return;
+	}
+	Thread *t = new Thread("forked thread",0,test2num-1);
+	t->Fork(SimpleThread2, test2num-1);
+	printf("*** welcome to thread %d, its priority is %d\n", currentThread->getThreadId(), currentThread->getPriority());
+	
+}
+
+
 //----------------------------------------------------------------------
 // ThreadTest1
 // 	Set up a ping-pong between two threads, by forking a thread 
@@ -54,6 +68,16 @@ ThreadTest1()
 	
 }
 
+void
+ThreadTest2()
+{
+    DEBUG('t', "Entering ThreadTest2");
+
+    Thread *t = new Thread("forked thread",0,5);
+	t->Fork(SimpleThread2, 5);
+	
+}
+
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -64,7 +88,9 @@ ThreadTest()
 {
     switch (testnum) {
     case 1:
-	ThreadTest1();
+		ThreadTest1();
+	case 2:
+		ThreadTest2();
 	break;
     default:
 	printf("No test specified.\n");

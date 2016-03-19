@@ -38,7 +38,7 @@ Thread* Thread::threadPool[] = {NULL};
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName, int a_userId)
+Thread::Thread(char* threadName, int a_userId, int a_priority)
 {
     name = threadName;
     stackTop = NULL;
@@ -56,11 +56,12 @@ Thread::Thread(char* threadName, int a_userId)
 			break;
 		}
 	}
+
 // at most 128 threads can exist
 	ASSERT(i < MAX_ALLOWED_THREAD);
-// userId = 0, as default
+// userId,priority = 0, as default
 	userId = a_userId;
-	
+	priority = a_priority;
 }
 
 //----------------------------------------------------------------------
@@ -134,8 +135,22 @@ Thread::Fork(VoidFunctionPtr func, int arg)
     StackAllocate(func, arg);
 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
-    scheduler->ReadyToRun(this);	// ReadyToRun assumes that interrupts 
-					// are disabled!
+	
+	//
+	//	preempt
+	//	implemented in lab 2
+	//
+	
+	if ( currentThread != NULL && this->getPriority() < currentThread->getPriority()){
+		scheduler->ReadyToRun(currentThread);
+		scheduler->Run(this);
+	}
+	else
+	{
+		scheduler->ReadyToRun(this);	// ReadyToRun assumes that interrupts 
+					// are disabled!			
+	}
+	
     (void) interrupt->SetLevel(oldLevel);
 }    
 
@@ -224,8 +239,8 @@ Thread::Yield ()
     
     nextThread = scheduler->FindNextToRun();
     if (nextThread != NULL) {
-	scheduler->ReadyToRun(this);
-	scheduler->Run(nextThread);
+		scheduler->ReadyToRun(this);
+		scheduler->Run(nextThread);
     }
     (void) interrupt->SetLevel(oldLevel);
 }
