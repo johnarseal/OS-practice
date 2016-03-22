@@ -240,6 +240,9 @@ Thread::Yield ()
     nextThread = scheduler->FindNextToRun();
     if (nextThread != NULL) {
 		scheduler->ReadyToRun(this);
+		printf("Thread %d is yielding, turning to thread %d\n",this->getThreadId(),nextThread->getThreadId());
+		stats->PrintTicks();
+		fflush(stdout);
 		scheduler->Run(nextThread);
     }
     (void) interrupt->SetLevel(oldLevel);

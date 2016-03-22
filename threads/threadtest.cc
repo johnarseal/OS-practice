@@ -13,7 +13,7 @@
 #include "system.h"
 
 // testnum is set in main.cc
-int testnum = 2;
+int testnum = 3;
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -49,6 +49,16 @@ SimpleThread2(int test2num)
 	
 }
 
+void
+SimpleThread3(int turn)
+{
+	for(int i = 0; i < turn; i++)
+	{
+		interrupt->OneTick();
+	}
+	
+}
+
 
 //----------------------------------------------------------------------
 // ThreadTest1
@@ -78,6 +88,19 @@ ThreadTest2()
 	
 }
 
+void
+ThreadTest3()
+{
+    DEBUG('t', "Entering ThreadTest3");
+
+	for(int i = 0; i < 5; i++)
+	{
+		Thread *t = new Thread("forked thread");
+		t->Fork(SimpleThread3,20);
+	}
+	
+}
+
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -88,9 +111,12 @@ ThreadTest()
 {
     switch (testnum) {
     case 1:
-		ThreadTest1();
+		ThreadTest1();break;
 	case 2:
-		ThreadTest2();
+		ThreadTest2();break;
+	case 3:
+		ThreadTest3();break;
+		
 	break;
     default:
 	printf("No test specified.\n");

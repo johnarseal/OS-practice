@@ -39,6 +39,7 @@ class Statistics {
     Statistics(); 		// initialize everything to zero
 
     void Print();		// print collected statistics
+	void PrintTicks();
 };
 
 // Constants used to reflect the relative time an operation would

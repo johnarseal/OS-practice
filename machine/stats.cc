@@ -42,3 +42,10 @@ Statistics::Print()
     printf("Network I/O: packets received %d, sent %d\n", numPacketsRecvd, 
 	numPacketsSent);
 }
+
+void
+Statistics::PrintTicks()
+{
+    printf("Ticks: total %d, idle %d, system %d, user %d\n", totalTicks, 
+	idleTicks, systemTicks, userTicks);
+}
