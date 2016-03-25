@@ -88,9 +88,10 @@ class Thread {
 	int userId,threadId;
 	static Thread* threadPool[MAX_ALLOWED_THREAD];		// index is the thread ID
 	int priority;
+	int timeSlice;
 
   public:
-    Thread(char* debugName,int userId=0, int priority=0);		// initialize a Thread 
+    Thread(char* debugName,int priority=0,int userId=0);		// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
 					// must not be running when delete 
@@ -112,7 +113,12 @@ class Thread {
     void Print() { printf("%s, ", name); }
 	
 	int getPriority(){return priority;}
+	void setPriority(int newPrior){priority = newPrior;}
+	
 	int getThreadId(){return threadId;}
+	void setSlice(){ timeSlice = (priority + 1) * 100; }
+	void reduceSlice(int slice){ timeSlice -= slice; }
+	int getSlice(){ return timeSlice; }
 	
 	//print the info of a thread and also all created threads, implmented by zz
 	void PrintThreadInfo(){

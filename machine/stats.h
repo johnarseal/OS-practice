@@ -57,5 +57,6 @@ class Statistics {
 #define ConsoleTime 	100	// time to read or write one character
 #define NetworkTime 	100   	// time to send or receive one packet
 #define TimerTicks 	100    	// (average) time between timer interrupts
+#define MaxPriority 4
 
 #endif // STATS_H

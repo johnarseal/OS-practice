@@ -38,7 +38,7 @@ Thread* Thread::threadPool[] = {NULL};
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName, int a_userId, int a_priority)
+Thread::Thread(char* threadName, int a_priority, int a_userId)
 {
     name = threadName;
     stackTop = NULL;
@@ -61,7 +61,11 @@ Thread::Thread(char* threadName, int a_userId, int a_priority)
 	ASSERT(i < MAX_ALLOWED_THREAD);
 // userId,priority = 0, as default
 	userId = a_userId;
+	if(a_priority > MaxPriority){
+		a_priority = MaxPriority;
+	}
 	priority = a_priority;
+	this->setSlice();
 }
 
 //----------------------------------------------------------------------

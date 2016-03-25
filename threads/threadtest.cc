@@ -43,7 +43,7 @@ SimpleThread2(int test2num)
 	{
 		return;
 	}
-	Thread *t = new Thread("forked thread",0,test2num-1);
+	Thread *t = new Thread("forked thread",test2num-1,0);
 	t->Fork(SimpleThread2, test2num-1);
 	printf("*** welcome to thread %d, its priority is %d\n", currentThread->getThreadId(), currentThread->getPriority());
 	
@@ -83,7 +83,7 @@ ThreadTest2()
 {
     DEBUG('t', "Entering ThreadTest2");
 
-    Thread *t = new Thread("forked thread",0,5);
+    Thread *t = new Thread("forked thread",5,0);
 	t->Fork(SimpleThread2, 5);
 	
 }
@@ -95,8 +95,8 @@ ThreadTest3()
 
 	for(int i = 0; i < 5; i++)
 	{
-		Thread *t = new Thread("forked thread");
-		t->Fork(SimpleThread3,20);
+		Thread *t = new Thread("forked thread",i);
+		t->Fork(SimpleThread3,(5-i)*20);
 	}
 	
 }

@@ -155,12 +155,23 @@ Interrupt::OneTick()
 // advance simulated time
     if (status == SystemMode) {
         stats->totalTicks += SystemTick;
-	stats->systemTicks += SystemTick;
+		stats->systemTicks += SystemTick;
+		
+		//change the thread slice zz implemented
+		currentThread->reduceSlice(SystemTick);
+		
     } else {					// USER_PROGRAM
 	stats->totalTicks += UserTick;
 	stats->userTicks += UserTick;
+	
+	//change the thread slice zz implemented
+	currentThread->reduceSlice(UserTick);
+	
     }
     DEBUG('i', "\n== Tick %d ==\n", stats->totalTicks);
+	
+	printf("Time: %d, Current thread is %d\n", stats->totalTicks,currentThread->getThreadId());
+	
 
 // check any pending interrupts are now ready to fire
     ChangeLevel(IntOn, IntOff);		// first, turn off interrupts
@@ -169,12 +180,25 @@ Interrupt::OneTick()
     while (CheckIfDue(FALSE))		// check for pending interrupts
 	;
     ChangeLevel(IntOff, IntOn);		// re-enable interrupts
-    if (yieldOnReturn) {		// if the timer device handler asked 
+    
+	if (currentThread->getSlice() <= 0 && yieldOnReturn) {		// if the timer device handler asked 
 					// for a context switch, ok to do it now
-	yieldOnReturn = FALSE;
- 	status = SystemMode;		// yield is a kernel routine
-	currentThread->Yield();
-	status = old;
+		yieldOnReturn = FALSE;
+	
+		//if time up set time slice back to initial -zz
+		int curPrior;
+		if((curPrior=currentThread->getPriority()) > MaxPriority){
+			currentThread->setPriority(MaxPriority - 1);
+		}
+		else
+		{
+			currentThread->setPriority(curPrior + 1);
+		}
+		currentThread->setSlice();
+		
+		status = SystemMode;		// yield is a kernel routine
+		currentThread->Yield();
+		status = old;
     }
 }
 
