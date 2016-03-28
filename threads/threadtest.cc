@@ -56,7 +56,6 @@ SimpleThread3(int turn)
 	{
 		interrupt->OneTick();
 	}
-	
 }
 
 
