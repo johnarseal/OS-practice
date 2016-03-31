@@ -170,7 +170,6 @@ Interrupt::OneTick()
     }
     DEBUG('i', "\n== Tick %d ==\n", stats->totalTicks);
 	
-	printf("Time: %d, Current thread is %d\n", stats->totalTicks,currentThread->getThreadId());
 	
 
 // check any pending interrupts are now ready to fire

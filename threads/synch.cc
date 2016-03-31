@@ -100,13 +100,67 @@ Semaphore::V()
 // Dummy functions -- so we can compile our later assignments 
 // Note -- without a correct implementation of Condition::Wait(), 
 // the test case in the network assignment won't work!
-Lock::Lock(char* debugName) {}
-Lock::~Lock() {}
-void Lock::Acquire() {}
-void Lock::Release() {}
+Lock::Lock(char* debugName) {
+	sem = new Semaphore(debugName,1);
+	holder = NULL;
+	name = debugName;
+}
+Lock::~Lock() {
+	delete sem;
+}
+void Lock::Acquire() {
+	sem->P();
+	holder = currentThread;
+}
+void Lock::Release() {
+	ASSERT(holder == currentThread);
+	sem->V();
+	holder = NULL;
+}
 
-Condition::Condition(char* debugName) { }
-Condition::~Condition() { }
-void Condition::Wait(Lock* conditionLock) { ASSERT(FALSE); }
-void Condition::Signal(Lock* conditionLock) { }
-void Condition::Broadcast(Lock* conditionLock) { }
+// functions for Condition
+// implemented by zz
+Condition::Condition(char* debugName) {
+	name = debugName;
+	conditionQueue = new List;
+}
+Condition::~Condition() { 
+	delete conditionQueue;
+}
+void Condition::Wait(Lock* conditionLock) {
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	ASSERT(conditionLock != NULL);
+	// release the lock
+	conditionLock->Release();
+	
+	// relinquish the CPU
+	conditionQueue->Append((void *)currentThread);	// so go to sleep
+	currentThread->Sleep();
+	
+	// re-acquire the lock, after resource is available
+	conditionLock->Acquire();
+	(void) interrupt->SetLevel(oldLevel);
+}
+
+void Condition::Signal(Lock* conditionLock) {
+	Thread *thread;
+	
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	thread = (Thread *)conditionQueue->Remove();
+    if (thread != NULL)	   // signal a thread on the ready list
+	{
+		scheduler->ReadyToRun(thread);	
+	}
+	(void) interrupt->SetLevel(oldLevel);
+}
+
+void Condition::Broadcast(Lock* conditionLock) {
+    Thread *thread;
+	
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	while((thread = (Thread *)conditionQueue->Remove()) != NULL)	   // signal a thread on the ready list
+	{
+		scheduler->ReadyToRun(thread);	
+	}	
+	(void) interrupt->SetLevel(oldLevel);
+}

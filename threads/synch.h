@@ -76,10 +76,13 @@ class Lock {
 					// holds this lock.  Useful for
 					// checking in Release, and in
 					// Condition variable ops below.
+	
+	Semaphore* sem;
 
   private:
     char* name;				// for debugging
     // plus some other stuff you'll need to define
+	Thread* holder;
 };
 
 // The following class defines a "condition variable".  A condition
@@ -128,9 +131,12 @@ class Condition {
     void Signal(Lock *conditionLock);   // conditionLock must be held by
     void Broadcast(Lock *conditionLock);// the currentThread for all of 
 					// these operations
-
+					
   private:
     char* name;
     // plus some other stuff you'll need to define
+	List* conditionQueue;       // threads waiting for signal
+	
+	
 };
 #endif // SYNCH_H

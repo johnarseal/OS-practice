@@ -11,10 +11,45 @@
 
 #include "copyright.h"
 #include "system.h"
+#include "synch.h"
 
 // testnum is set in main.cc
-int testnum = 3;
+int testnum = 4;
 
+
+//the consumer and producer model for synchronize test.
+class Con_Pro{
+	public:
+		int count, maxSlot;
+		bool* pool;
+		Lock* poolLock;
+		Condition* not_empty;
+		Condition* not_full;
+		
+		//initialize a Consumer_Produce
+		Con_Pro(int slot=2)
+		{
+			count = 0;
+			maxSlot=slot;
+			pool = new bool[slot];
+			for (int i = 0; i < slot; i++)
+			{
+				pool[i] = 0;
+			}
+			poolLock = new Lock("poolLock");
+			not_empty = new Condition("not_empty");
+			not_full = new Condition("not_full");
+		}
+		~Con_Pro(){
+			delete pool;
+			delete poolLock;
+			delete not_empty;
+			delete not_full;
+		}
+		
+};
+
+Con_Pro conPro = Con_Pro();
 //----------------------------------------------------------------------
 // SimpleThread
 // 	Loop 5 times, yielding the CPU to another ready thread 
@@ -56,7 +91,53 @@ SimpleThread3(int turn)
 	{
 		interrupt->OneTick();
 	}
-	
+}
+
+void
+consumer(int id)
+{
+	conPro.poolLock->Acquire();
+	while(conPro.count == 0)
+	{
+		printf("consumer %d is blocked due to empty pool\n",id);
+		conPro.not_empty->Wait(conPro.poolLock);
+	}
+	int i;
+	for(i = 0; i < conPro.maxSlot; i++)
+	{
+		if (conPro.pool[i] == 1)
+		{
+			conPro.pool[i] = 0;
+			conPro.not_full->Signal(conPro.poolLock);
+			break;
+		}
+	}
+	printf("consumer %d consumed slot %d\n",id,i);
+	conPro.count--;
+	conPro.poolLock->Release();
+}
+void
+producer(int id)
+{
+	conPro.poolLock->Acquire();
+	while(conPro.count == conPro.maxSlot)
+	{
+		printf("producer %d is blocked due to full pool\n",id);
+		conPro.not_full->Wait(conPro.poolLock);
+	}
+	int i;
+	for(i = 0; i < conPro.maxSlot; i++)
+	{
+		if (conPro.pool[i] == 0)
+		{
+			conPro.pool[i] = 1;
+			conPro.not_empty->Signal(conPro.poolLock);
+			break;
+		}
+	}
+	printf("producer %d produced in slot %d\n",id,i);
+	conPro.count++;
+	conPro.poolLock->Release();
 }
 
 
@@ -101,6 +182,24 @@ ThreadTest3()
 	
 }
 
+void
+ThreadTest4()
+{
+    DEBUG('t', "Entering ThreadTest4");
+	int i;
+	Thread* t;
+	for(i = 0; i < 6; i++)
+	{
+		t = new Thread("consumer");
+		t->Fork(consumer,i);		
+	}
+	for(i = 0; i < 6; i++)
+	{
+		t = new Thread("producer");
+		t->Fork(producer,i);	
+	}
+}
+
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -116,7 +215,8 @@ ThreadTest()
 		ThreadTest2();break;
 	case 3:
 		ThreadTest3();break;
-		
+	case 4:
+		ThreadTest4();break;
 	break;
     default:
 	printf("No test specified.\n");
