@@ -164,3 +164,39 @@ void Condition::Broadcast(Lock* conditionLock) {
 	}	
 	(void) interrupt->SetLevel(oldLevel);
 }
+
+// functions for Barrier
+// implemented by zz
+Barrier::Barrier(char* debugName, int num) {
+	cnt = initCnt = num;
+	name = debugName;
+	cntLock = new Lock(debugName);
+	waitCond = new Condition(debugName);
+}
+Barrier::~Barrier() { 
+	delete cntLock;
+	delete waitCond;
+}
+void Barrier::Synch() { 
+	cntLock->Acquire();
+	cnt--;
+	if (cnt == 0)
+	{
+		cnt = initCnt;
+		waitCond->Broadcast(cntLock);
+	}
+	else
+	{
+		waitCond->Wait(cntLock);
+	}
+	cntLock->Release();
+}
+
+
+
+
+
+
+
+
+

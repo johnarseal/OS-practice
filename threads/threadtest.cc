@@ -18,38 +18,35 @@ int testnum = 4;
 
 
 //the consumer and producer model for synchronize test.
-class Con_Pro{
+class Philo{
 	public:
-		int count, maxSlot;
-		bool* pool;
-		Lock* poolLock;
-		Condition* not_empty;
-		Condition* not_full;
+		int cnt;
+		bool* fork;
+		Lock* tableLock;
+		Condition* checkTable;
 		
 		//initialize a Consumer_Produce
-		Con_Pro(int slot=2)
+		Philo(int num=5)
 		{
-			count = 0;
-			maxSlot=slot;
-			pool = new bool[slot];
-			for (int i = 0; i < slot; i++)
+			cnt = num;
+			fork = new bool[num];
+			for (int i = 0; i < num; i++)
 			{
-				pool[i] = 0;
+				fork[i] = 0;
 			}
-			poolLock = new Lock("poolLock");
-			not_empty = new Condition("not_empty");
-			not_full = new Condition("not_full");
+			tableLock = new Lock("tableLock");
+			checkTable = new Condition("checkTable");
 		}
-		~Con_Pro(){
-			delete pool;
-			delete poolLock;
-			delete not_empty;
-			delete not_full;
+		~Philo(){
+			delete fork;
+			delete tableLock;
+			delete checkTable;
 		}
 		
 };
 
-Con_Pro conPro = Con_Pro();
+Philo philo = Philo(5);
+Barrier philoBar = Barrier("philoBar",5);
 //----------------------------------------------------------------------
 // SimpleThread
 // 	Loop 5 times, yielding the CPU to another ready thread 
@@ -93,51 +90,28 @@ SimpleThread3(int turn)
 	}
 }
 
-void
-consumer(int id)
+void philosopher(int id)
 {
-	conPro.poolLock->Acquire();
-	while(conPro.count == 0)
+	philoBar.Synch();
+	philo.tableLock->Acquire();
+	while(philo.fork[id] || philo.fork[(id+1) % philo.cnt])
 	{
-		printf("consumer %d is blocked due to empty pool\n",id);
-		conPro.not_empty->Wait(conPro.poolLock);
+		printf("philosopher %d is sleeping because his fork is not available\n",id);
+		philo.checkTable->Wait(philo.tableLock);
 	}
-	int i;
-	for(i = 0; i < conPro.maxSlot; i++)
+	philo.fork[id] = philo.fork[(id+1) % philo.cnt] = 1;
+	printf("philosopher %d is now eating\n",id);
+	philo.tableLock->Release();
+	// eating here, try to swicth
+	for(int i = 0; i < 11; i++)
 	{
-		if (conPro.pool[i] == 1)
-		{
-			conPro.pool[i] = 0;
-			conPro.not_full->Signal(conPro.poolLock);
-			break;
-		}
+		interrupt->OneTick();
 	}
-	printf("consumer %d consumed slot %d\n",id,i);
-	conPro.count--;
-	conPro.poolLock->Release();
-}
-void
-producer(int id)
-{
-	conPro.poolLock->Acquire();
-	while(conPro.count == conPro.maxSlot)
-	{
-		printf("producer %d is blocked due to full pool\n",id);
-		conPro.not_full->Wait(conPro.poolLock);
-	}
-	int i;
-	for(i = 0; i < conPro.maxSlot; i++)
-	{
-		if (conPro.pool[i] == 0)
-		{
-			conPro.pool[i] = 1;
-			conPro.not_empty->Signal(conPro.poolLock);
-			break;
-		}
-	}
-	printf("producer %d produced in slot %d\n",id,i);
-	conPro.count++;
-	conPro.poolLock->Release();
+	philo.tableLock->Acquire();
+	printf("philosopher %d puts down his forks and finishes\n",id);
+	philo.fork[id] = philo.fork[(id+1) % philo.cnt] = 0;
+	philo.checkTable->Broadcast(philo.tableLock);
+	philo.tableLock->Release();
 }
 
 
@@ -188,15 +162,10 @@ ThreadTest4()
     DEBUG('t', "Entering ThreadTest4");
 	int i;
 	Thread* t;
-	for(i = 0; i < 6; i++)
+	for(i = 0; i < 5; i++)
 	{
-		t = new Thread("consumer");
-		t->Fork(consumer,i);		
-	}
-	for(i = 0; i < 6; i++)
-	{
-		t = new Thread("producer");
-		t->Fork(producer,i);	
+		t = new Thread("philosopher");
+		t->Fork(philosopher,i);		
 	}
 }
 

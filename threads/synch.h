@@ -139,4 +139,25 @@ class Condition {
 	
 	
 };
+
+// The following class defines a "barrier variable". 
+// only when all threads reached to barrier can they execute together
+
+class Barrier {
+  public:
+    Barrier(char* debugName,int num);		// initialize condition to 
+					// "no one waiting"
+    ~Barrier();			// deallocate the condition
+    char* getName() { return (name); }
+    
+    void Synch(); 	// call this to wait for other threads
+					
+  private:
+    int cnt,initCnt;		//the number of sync threads
+    char* name;
+	Lock* cntLock;
+    Condition* waitCond;
+	
+	
+};
 #endif // SYNCH_H
