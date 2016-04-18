@@ -42,4 +42,17 @@ class TranslationEntry {
 			// page is modified.
 };
 
+// tlb implemented by zz
+
+class TLBuffer {
+  public:
+	TranslationEntry *tlbTable;
+	int *hitRecord;
+	int bufferSize;
+	void Swap();
+	TLBuffer(int bfSize);		// initialize a Thread 
+    ~TLBuffer();
+};
+
+
 #endif

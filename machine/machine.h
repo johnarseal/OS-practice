@@ -48,6 +48,8 @@ enum ExceptionType { NoException,           // Everything ok!
 					    // address space
 		     OverflowException,     // Integer overflow in add or sub.
 		     IllegalInstrException, // Unimplemented or reserved instr.
+			 
+			 TLBMissException, // miss tlb
 		     
 		     NumExceptionTypes
 };
@@ -176,7 +178,7 @@ class Machine {
 // Thus the TLB pointer should be considered as *read-only*, although 
 // the contents of the TLB are free to be modified by the kernel software.
 
-    TranslationEntry *tlb;		// this pointer should be considered 
+    TLBuffer *tlb;		// this pointer should be considered 
 					// "read-only" to Nachos kernel code
 
     TranslationEntry *pageTable;

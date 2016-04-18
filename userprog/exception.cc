@@ -53,11 +53,24 @@ ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
 
-    if ((which == SyscallException) && (type == SC_Halt)) {
-	DEBUG('a', "Shutdown, initiated by user program.\n");
-   	interrupt->Halt();
-    } else {
-	printf("Unexpected user mode exception %d %d\n", which, type);
-	ASSERT(FALSE);
-    }
+    switch (which) {
+		case SyscallException:
+			if (type == SC_Halt) {
+				DEBUG('a', "Shutdown, initiated by user program.\n");
+				interrupt->Halt();
+			}
+			else{
+				printf("Undefined system call exception %d %d\n", which, type);
+				ASSERT(FALSE);				
+			}
+			break;
+			
+		case TLBMissException:
+			machine->tlb->Swap();
+			break;
+		
+		default:
+			printf("Unexpected user mode exception %d %d\n", which, type);
+			ASSERT(FALSE);
+	}
 }

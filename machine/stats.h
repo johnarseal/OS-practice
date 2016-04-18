@@ -40,6 +40,10 @@ class Statistics {
 
     void Print();		// print collected statistics
 	void PrintTicks();
+	
+	//below implemented by zz
+	int tlbMiss;
+	int tlbHit;
 };
 
 // Constants used to reflect the relative time an operation would

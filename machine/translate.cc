@@ -95,23 +95,23 @@ Machine::ReadMem(int addr, int size, int *value)
     
     exception = Translate(addr, &physicalAddress, size, FALSE);
     if (exception != NoException) {
-	machine->RaiseException(exception, addr);
-	return FALSE;
+		machine->RaiseException(exception, addr);
+		return FALSE;
     }
     switch (size) {
       case 1:
-	data = machine->mainMemory[physicalAddress];
-	*value = data;
+		data = machine->mainMemory[physicalAddress];
+		*value = data;
 	break;
 	
       case 2:
-	data = *(unsigned short *) &machine->mainMemory[physicalAddress];
-	*value = ShortToHost(data);
+		data = *(unsigned short *) &machine->mainMemory[physicalAddress];
+		*value = ShortToHost(data);
 	break;
 	
       case 4:
-	data = *(unsigned int *) &machine->mainMemory[physicalAddress];
-	*value = WordToHost(data);
+		data = *(unsigned int *) &machine->mainMemory[physicalAddress];
+		*value = WordToHost(data);
 	break;
 
       default: ASSERT(FALSE);
@@ -200,8 +200,9 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     }
     
     // we must have either a TLB or a page table, but not both!
-    ASSERT(tlb == NULL || pageTable == NULL);	
-    ASSERT(tlb != NULL || pageTable != NULL);	
+	// zz: who made this stupid assertion???
+//    ASSERT(tlb == NULL || pageTable == NULL);	
+//    ASSERT(tlb != NULL || pageTable != NULL);	
 
 // calculate the virtual page number, and offset within the page,
 // from the virtual address
@@ -209,28 +210,32 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     offset = (unsigned) virtAddr % PageSize;
     
     if (tlb == NULL) {		// => page table => vpn is index into table
-	if (vpn >= pageTableSize) {
-	    DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-			virtAddr, pageTableSize);
-	    return AddressErrorException;
-	} else if (!pageTable[vpn].valid) {
-	    DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-			virtAddr, pageTableSize);
-	    return PageFaultException;
-	}
-	entry = &pageTable[vpn];
-    } else {
-        for (entry = NULL, i = 0; i < TLBSize; i++)
-    	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
-		entry = &tlb[i];			// FOUND!
-		break;
-	    }
-	if (entry == NULL) {				// not found
-    	    DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
-    	    return PageFaultException;		// really, this is a TLB fault,
-						// the page may be in memory,
-						// but not in the TLB
-	}
+		if (vpn >= pageTableSize) {
+			DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
+				virtAddr, pageTableSize);
+			return AddressErrorException;
+		} else if (!pageTable[vpn].valid) {
+			DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
+				virtAddr, pageTableSize);
+			return PageFaultException;
+		}
+		entry = &pageTable[vpn];
+    } else {					// using tlb
+        for (entry = NULL, i = 0; i < TLBSize; i++) {
+    	    if (tlb->tlbTable[i].valid && (tlb->tlbTable[i].virtualPage == vpn)) {
+				entry = &(tlb->tlbTable[i]);			// FOUND!
+				tlb->hitRecord[i]++;					// tlb hit!
+				stats->tlbHit++;
+				break;
+			}
+		}
+		if (entry == NULL) {				// not found
+			DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
+			stats->tlbMiss++;
+			return TLBMissException;		// really, this is a TLB fault,
+							// the page may be in memory,
+							// but not in the TLB
+		}
     }
 
     if (entry->readOnly && writing) {	// trying to write to a read-only page
@@ -253,3 +258,58 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     DEBUG('a', "phys addr = 0x%x\n", *physAddr);
     return NoException;
 }
+
+TLBuffer::TLBuffer(int bfSize){
+	int i;
+	tlbTable = new TranslationEntry[bfSize];
+	hitRecord = new int[bfSize];
+	bufferSize = bfSize;
+	for (i = 0; i < bfSize; i++) {
+		tlbTable[i].valid = FALSE;
+		hitRecord[i] = 0;
+	}
+}
+
+TLBuffer::~TLBuffer(){
+	delete tlbTable;
+	delete hitRecord;
+}
+
+// swap the TranslationEntry from pageTable to TLB when tlb miss
+// implemented by zz
+void
+TLBuffer::Swap(){
+	int missingVAddr,swapIndex,i,minHit;
+	unsigned int vpn;
+	missingVAddr = machine->ReadRegister(BadVAddrReg);
+	vpn = (unsigned) missingVAddr / PageSize;
+	if (vpn >= machine->pageTableSize) {
+		DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
+		missingVAddr, machine->pageTableSize);
+		machine->RaiseException(AddressErrorException, missingVAddr);
+	}
+	else if (!machine->pageTable[vpn].valid) {
+		DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
+		missingVAddr, machine->pageTableSize);
+		machine->RaiseException(PageFaultException, missingVAddr);
+	}
+	else {
+		swapIndex = 0;
+		minHit = hitRecord[0];
+		for(i = 0; i < bufferSize; i++)
+		{
+			if(!tlbTable[i].valid) {
+				swapIndex = i;
+				break;
+			}
+			if(hitRecord[i] < minHit) {
+				minHit = hitRecord[i];
+				swapIndex = i;
+			}
+		}
+		tlbTable[swapIndex] = machine->pageTable[vpn];
+		hitRecord[swapIndex] = 1;
+	}	
+}
+
+

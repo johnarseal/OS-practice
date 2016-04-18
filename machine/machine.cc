@@ -16,7 +16,7 @@
 static char* exceptionNames[] = { "no exception", "syscall", 
 				"page fault/no TLB entry", "page read only",
 				"bus error", "address error", "overflow",
-				"illegal instruction" };
+				"illegal instruction", "TLB hit miss"};
 
 //----------------------------------------------------------------------
 // CheckEndian
@@ -62,11 +62,11 @@ Machine::Machine(bool debug)
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
 #ifdef USE_TLB
-    tlb = new TranslationEntry[TLBSize];
-    for (i = 0; i < TLBSize; i++)
-	tlb[i].valid = FALSE;
+	printf("using tlb\n");
+    tlb = new TLBuffer(TLBSize);
     pageTable = NULL;
 #else	// use linear page table
+	printf("not using tlb\n");	
     tlb = NULL;
     pageTable = NULL;
 #endif
@@ -84,7 +84,7 @@ Machine::~Machine()
 {
     delete [] mainMemory;
     if (tlb != NULL)
-        delete [] tlb;
+        delete tlb;
 }
 
 //----------------------------------------------------------------------

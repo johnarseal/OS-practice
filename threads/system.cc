@@ -148,19 +148,37 @@ Initialize(int argc, char **argv)
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
     
 #ifdef USER_PROGRAM
-    machine = new Machine(debugUserProg);	// this must come first
+	machine = new Machine(debugUserProg);	// this must come first
+	printf("USER_PROGRAM defined\n");
+#else
+	printf("USER_PROGRAM not defined\n");
 #endif
-
+	
 #ifdef FILESYS
     synchDisk = new SynchDisk("DISK");
+	printf("FILESYS defined\n");
+#else
+	printf("FILESYS not defined\n");
 #endif
 
 #ifdef FILESYS_NEEDED
     fileSystem = new FileSystem(format);
+	printf("FILESYS_NEEDED defined\n");
+#else
+	printf("FILESYS_NEEDED not defined\n");
 #endif
 
 #ifdef NETWORK
     postOffice = new PostOffice(netname, rely, 10);
+	printf("NETWORK defined\n");
+#else
+	printf("NETWORK not defined\n");
+#endif
+
+#ifdef VM
+	printf("VM defined\n");
+#else
+	printf("VM not defined\n");
 #endif
 }
 

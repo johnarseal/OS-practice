@@ -100,7 +100,7 @@ Machine::OneInstruction(Instruction *instr)
 
     // Fetch instruction 
     if (!machine->ReadMem(registers[PCReg], 4, &raw))
-	return;			// exception occurred
+	return;			// read memory failed. Might be caused due to TLB miss
     instr->value = raw;
     instr->Decode();
 
