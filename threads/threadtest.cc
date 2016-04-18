@@ -17,7 +17,7 @@
 int testnum = 4;
 
 
-//the consumer and producer model for synchronize test.
+//the philosopher model for synchronize test.
 class Philo{
 	public:
 		int cnt;

@@ -160,4 +160,22 @@ class Barrier {
 	
 	
 };
+
+// The following class defines a "read write lock". 
+// implement for challenge 2 in lab3
+class ReadWriteLock {
+  public:
+    ReadWriteLock();		// initialize condition to 
+					// "no one waiting"
+    ~ReadWriteLock();			// deallocate the condition
+    void getReaderLock();
+	void releaseReaderLock();
+	void getWriterLock();
+	void releaseWriterLock();
+					
+  private:
+	int readerCnt;
+	Lock *rc,*db; 			//rc protects readerCnt
+	
+};
 #endif // SYNCH_H

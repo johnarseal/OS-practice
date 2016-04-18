@@ -192,7 +192,51 @@ void Barrier::Synch() {
 	cntLock->Release();
 }
 
-
+// functions for readwriteLock
+// implemented by zz
+ReadWriteLock::ReadWriteLock(){
+	readerCnt = 0;
+	rc = new Lock("rc");
+	db = new Lock("db");
+}
+//reader acquire lock
+void ReadWriteLock::getReaderLock(){
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	//disable interrupt
+	
+	rc->Acquire();
+	readerCnt++;
+	if (readerCnt == 1)			//if it is the first reader
+	{
+		db->Acquire();
+	}
+	rc->Release();
+	
+	(void) interrupt->SetLevel(oldLevel);
+}
+// reader release lock
+void ReadWriteLock::releaseReaderLock(){
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	//disable interrupt
+	
+	rc->Acquire();
+	readerCnt--;
+	if (readerCnt == 0)			//if it is the last reader
+	{
+		db->Release();
+	}
+	rc->Release();
+	
+	(void) interrupt->SetLevel(oldLevel);
+}
+void ReadWriteLock::getWriterLock(){
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	//disable interrupt
+	db->Acquire();
+	(void) interrupt->SetLevel(oldLevel);
+}
+void ReadWriteLock::releaseWriterLock(){
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	//disable interrupt
+	db->Release();
+	(void) interrupt->SetLevel(oldLevel);
+}
 
 
 
