@@ -68,6 +68,10 @@ ExceptionHandler(ExceptionType which)
 		case TLBMissException:
 			machine->tlb->Swap();
 			break;
+			
+		case PageFaultException:
+			machine->pageTable->Swap();
+			break;			
 		
 		default:
 			printf("Unexpected user mode exception %d %d\n", which, type);

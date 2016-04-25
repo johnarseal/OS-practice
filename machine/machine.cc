@@ -62,9 +62,8 @@ Machine::Machine(bool debug)
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
 #ifdef USE_TLB
-	printf("using tlb\n");
     tlb = new TLBuffer(TLBSize);
-    pageTable = NULL;
+    pageTable = new PageTable(NumPhysPages);
 #else	// use linear page table
 	printf("not using tlb\n");	
     tlb = NULL;

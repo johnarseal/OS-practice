@@ -29,7 +29,8 @@
 
 class TranslationEntry {
   public:
-    int virtualPage;  	// The page number in virtual memory.
+    int threadId;		// to which thread this entry belongs to
+	int virtualPage;  	// The page number in virtual memory.
     int physicalPage;  	// The page number in real memory (relative to the
 			//  start of "mainMemory"
     bool valid;         // If this bit is set, the translation is ignored.
@@ -52,6 +53,18 @@ class TLBuffer {
 	void Swap();
 	TLBuffer(int bfSize);		// initialize a Thread 
     ~TLBuffer();
+};
+
+class PageTable {
+  public:
+	TranslationEntry *pgTableEntry;
+	int *hitRecord;
+	int entrySize;
+	TranslationEntry *getPage(int threadId, int vpn);
+	void Swap();
+	
+	PageTable(int bfSize);		// initialize a Thread 
+    ~PageTable();
 };
 
 

@@ -210,19 +210,19 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     offset = (unsigned) virtAddr % PageSize;
     
     if (tlb == NULL) {		// => page table => vpn is index into table
-		if (vpn >= pageTableSize) {
+		if (vpn >= currentThread->space->numPages) {
 			DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-				virtAddr, pageTableSize);
+				virtAddr, currentThread->space->numPages);
 			return AddressErrorException;
-		} else if (!pageTable[vpn].valid) {
-			DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-				virtAddr, pageTableSize);
-			return PageFaultException;
+		} else{
+			entry = pageTable->getPage(currentThread->threadId,vpn);
+			if(entry == NULL){
+				return PageFaultException;
+			}			
 		}
-		entry = &pageTable[vpn];
     } else {					// using tlb
         for (entry = NULL, i = 0; i < TLBSize; i++) {
-    	    if (tlb->tlbTable[i].valid && (tlb->tlbTable[i].virtualPage == vpn)) {
+    	    if (tlb->tlbTable[i].valid && (tlb->tlbTable[i].threadId == currentThread->threadId) && (tlb->tlbTable[i].virtualPage == vpn)) {
 				entry = &(tlb->tlbTable[i]);			// FOUND!
 				tlb->hitRecord[i]++;					// tlb hit!
 				stats->tlbHit++;
@@ -259,6 +259,8 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     return NoException;
 }
 
+
+//	TLBbuffer implemented by zz
 TLBuffer::TLBuffer(int bfSize){
 	int i;
 	tlbTable = new TranslationEntry[bfSize];
@@ -281,23 +283,31 @@ void
 TLBuffer::Swap(){
 	int missingVAddr,swapIndex,i,minHit;
 	unsigned int vpn;
+	TranslationEntry *entry;
+	
 	missingVAddr = machine->ReadRegister(BadVAddrReg);
 	vpn = (unsigned) missingVAddr / PageSize;
-	if (vpn >= machine->pageTableSize) {
+	
+	// if the virtual page is too large
+	if (vpn >= currentThread->space->numPages) {
 		DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-		missingVAddr, machine->pageTableSize);
+		missingVAddr, currentThread->space->numPages);
 		machine->RaiseException(AddressErrorException, missingVAddr);
 	}
-	else if (!machine->pageTable[vpn].valid) {
-		DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-		missingVAddr, machine->pageTableSize);
-		machine->RaiseException(PageFaultException, missingVAddr);
-	}
-	else {
+	else {	// get the page from the page table
+		entry = machine->pageTable->getPage(currentThread->threadId,vpn);
+		if(entry == NULL){
+			// if the page is not in the page table, raise a page fault, swap it from the disk
+			machine->pageTable->Swap(vpn);
+			entry = machine->pageTable->getPage(currentThread->threadId,vpn);
+			// if it is still not in page table, swap failed, halt
+			if(entry == NULL){
+				ASSERT(FALSE);
+			}
+		}
 		swapIndex = 0;
 		minHit = hitRecord[0];
-		for(i = 0; i < bufferSize; i++)
-		{
+		for(i = 0; i < bufferSize; i++){
 			if(!tlbTable[i].valid) {
 				swapIndex = i;
 				break;
@@ -307,9 +317,66 @@ TLBuffer::Swap(){
 				swapIndex = i;
 			}
 		}
-		tlbTable[swapIndex] = machine->pageTable[vpn];
+		tlbTable[swapIndex] = *(entry);
 		hitRecord[swapIndex] = 1;
-	}	
+	}
 }
+
+
+//	a page table implemented by zz
+PageTable::PageTable(int bfSize){
+	int i;
+	entrySize = bfSize;
+	pgTableEntry = new TranslationEntry[bfSize];
+	hitRecord = new int[bfSize];
+	for (i = 0; i < bfSize; i++) {
+		pgTableEntry[i].valid = FALSE;
+		pgTableEntry[i].use = FALSE;
+		pgTableEntry[i].dirty = FALSE;
+		pgTableEntry[i].readOnly = FALSE;
+		hitRecord[i] = 0;
+	}
+}
+
+PageTable::~PageTable(){
+	delete pgTableEntry;
+	delete hitRecord;
+}
+
+TranslationEntry *
+PageTable::getPage(int threadId, int vpn){
+	int i;
+	for (i = 0; i < entrySize; i++) {
+		if((pgTableEntry[i].threadId == threadId) && (pgTableEntry[i].virtualPage == vpn) && pgTableEntry[i].valid){
+			break;
+		}
+	}
+	if(i < entrySize){
+		return &pgTableEntry[i];
+	}
+	else{
+		return NULL;
+	}
+}
+
+void
+PageTable::Swap(int vpn){
+	currentThread->space->noffH
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
