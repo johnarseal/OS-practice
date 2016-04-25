@@ -35,6 +35,7 @@ class AddrSpace {
   private:
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
+	int stackEnd;
 };
 
 #endif // ADDRSPACE_H

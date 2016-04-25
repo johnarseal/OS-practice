@@ -143,8 +143,10 @@ AddrSpace::InitRegisters()
    // Set the stack register to the end of the address space, where we
    // allocated the stack; but subtract off a bit, to make sure we don't
    // accidentally reference off the end!
-    machine->WriteRegister(StackReg, numPages * PageSize - 16);
+	stackEnd = numPages * PageSize - 16;
+    machine->WriteRegister(StackReg, stackEnd);
     DEBUG('a', "Initializing stack register to %d\n", numPages * PageSize - 16);
+	
 }
 
 //----------------------------------------------------------------------

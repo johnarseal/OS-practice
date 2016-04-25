@@ -210,15 +210,9 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     offset = (unsigned) virtAddr % PageSize;
     
     if (tlb == NULL) {		// => page table => vpn is index into table
-		if (vpn >= currentThread->space->numPages) {
-			DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-				virtAddr, currentThread->space->numPages);
-			return AddressErrorException;
-		} else{
-			entry = pageTable->getPage(currentThread->threadId,vpn);
-			if(entry == NULL){
-				return PageFaultException;
-			}			
+		entry = pageTable->getPage(currentThread->threadId,vpn);
+		if(entry == NULL){
+			return PageFaultException;
 		}
     } else {					// using tlb
         for (entry = NULL, i = 0; i < TLBSize; i++) {
@@ -288,38 +282,31 @@ TLBuffer::Swap(){
 	missingVAddr = machine->ReadRegister(BadVAddrReg);
 	vpn = (unsigned) missingVAddr / PageSize;
 	
-	// if the virtual page is too large
-	if (vpn >= currentThread->space->numPages) {
-		DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-		missingVAddr, currentThread->space->numPages);
-		machine->RaiseException(AddressErrorException, missingVAddr);
-	}
-	else {	// get the page from the page table
+	// get the page from the page table
+	entry = machine->pageTable->getPage(currentThread->threadId,vpn);
+	if(entry == NULL){
+		// if the page is not in the page table, raise a page fault, swap it from the disk
+		machine->pageTable->Swap(vpn);
 		entry = machine->pageTable->getPage(currentThread->threadId,vpn);
+		// if it is still not in page table, swap failed, halt
 		if(entry == NULL){
-			// if the page is not in the page table, raise a page fault, swap it from the disk
-			machine->pageTable->Swap(vpn);
-			entry = machine->pageTable->getPage(currentThread->threadId,vpn);
-			// if it is still not in page table, swap failed, halt
-			if(entry == NULL){
-				ASSERT(FALSE);
-			}
+			ASSERT(FALSE);
 		}
-		swapIndex = 0;
-		minHit = hitRecord[0];
-		for(i = 0; i < bufferSize; i++){
-			if(!tlbTable[i].valid) {
-				swapIndex = i;
-				break;
-			}
-			if(hitRecord[i] < minHit) {
-				minHit = hitRecord[i];
-				swapIndex = i;
-			}
-		}
-		tlbTable[swapIndex] = *(entry);
-		hitRecord[swapIndex] = 1;
 	}
+	swapIndex = 0;
+	minHit = hitRecord[0];
+	for(i = 0; i < bufferSize; i++){
+		if(!tlbTable[i].valid) {
+			swapIndex = i;
+			break;
+		}
+		if(hitRecord[i] < minHit) {
+			minHit = hitRecord[i];
+			swapIndex = i;
+		}
+	}
+	tlbTable[swapIndex] = *(entry);
+	hitRecord[swapIndex] = 1;
 }
 
 
@@ -361,7 +348,26 @@ PageTable::getPage(int threadId, int vpn){
 
 void
 PageTable::Swap(int vpn){
-	currentThread->space->noffH
+	int codeBegin = currentThread->space->noffH.code.virtualAddr;
+	int codeEnd = currentThread->space->noffH.code.virtualAddr + noffH.code.size;
+	
+	int initDataBegin = currentThread->space->noffH.initData.virtualAddr;
+	int initDataEnd = currentThread->space->noffH.initData.virtualAddr + noffH.initData.size;
+	
+	int uninitDataBegin = currentThread->space->noffH.uninitData.virtualAddr;
+	int uninitDataEnd = currentThread->space->noffH.uninitData.virtualAddr + noffH.uninitData.size;
+	
+	int stackEnd = currentThread->space->stackEnd;
+	int stackBegin = currentThread->space->stackEnd - UserStackSize;
+	int requestVA = vpn * PageSize;
+	
+	if (requestVA >= codeBegin && requestVA < codeEnd){
+		if (requestVA + PageSize > codeEnd){
+			codeBegin
+		}
+	}
+	
+	
 	
 	
 }
