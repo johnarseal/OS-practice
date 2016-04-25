@@ -52,7 +52,7 @@ void
 ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
-
+	int vpn;
     switch (which) {
 		case SyscallException:
 			if (type == SC_Halt) {
@@ -70,7 +70,8 @@ ExceptionHandler(ExceptionType which)
 			break;
 			
 		case PageFaultException:
-			machine->pageTable->Swap();
+			vpn = machine->ReadRegister(BadVAddrReg) / PageSize;
+			machine->pageTable->Swap(vpn);
 			break;			
 		
 		default:

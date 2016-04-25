@@ -61,7 +61,7 @@ class PageTable {
 	int *hitRecord;
 	int entrySize;
 	TranslationEntry *getPage(int threadId, int vpn);
-	void Swap();
+	void Swap(int vpn);
 	
 	PageTable(int bfSize);		// initialize a Thread 
     ~PageTable();

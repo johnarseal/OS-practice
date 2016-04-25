@@ -276,11 +276,11 @@ TLBuffer::~TLBuffer(){
 void
 TLBuffer::Swap(){
 	int missingVAddr,swapIndex,i,minHit;
-	unsigned int vpn;
+	int vpn;
 	TranslationEntry *entry;
 	
 	missingVAddr = machine->ReadRegister(BadVAddrReg);
-	vpn = (unsigned) missingVAddr / PageSize;
+	vpn =  missingVAddr / PageSize;
 	
 	// get the page from the page table
 	entry = machine->pageTable->getPage(currentThread->threadId,vpn);
@@ -321,6 +321,7 @@ PageTable::PageTable(int bfSize){
 		pgTableEntry[i].use = FALSE;
 		pgTableEntry[i].dirty = FALSE;
 		pgTableEntry[i].readOnly = FALSE;
+		pgTableEntry[i].physicalPage = i;
 		hitRecord[i] = 0;
 	}
 }
@@ -335,6 +336,7 @@ PageTable::getPage(int threadId, int vpn){
 	int i;
 	for (i = 0; i < entrySize; i++) {
 		if((pgTableEntry[i].threadId == threadId) && (pgTableEntry[i].virtualPage == vpn) && pgTableEntry[i].valid){
+			hitRecord[i]++;
 			break;
 		}
 	}
@@ -349,27 +351,73 @@ PageTable::getPage(int threadId, int vpn){
 void
 PageTable::Swap(int vpn){
 	int codeBegin = currentThread->space->noffH.code.virtualAddr;
-	int codeEnd = currentThread->space->noffH.code.virtualAddr + noffH.code.size;
+	int codeEnd = currentThread->space->noffH.code.virtualAddr + currentThread->space->noffH.code.size;
 	
 	int initDataBegin = currentThread->space->noffH.initData.virtualAddr;
-	int initDataEnd = currentThread->space->noffH.initData.virtualAddr + noffH.initData.size;
+	int initDataEnd = currentThread->space->noffH.initData.virtualAddr + currentThread->space->noffH.initData.size;
 	
 	int uninitDataBegin = currentThread->space->noffH.uninitData.virtualAddr;
-	int uninitDataEnd = currentThread->space->noffH.uninitData.virtualAddr + noffH.uninitData.size;
+	int uninitDataEnd = currentThread->space->noffH.uninitData.virtualAddr + currentThread->space->noffH.uninitData.size;
 	
-	int stackEnd = currentThread->space->stackEnd;
-	int stackBegin = currentThread->space->stackEnd - UserStackSize;
 	int requestVA = vpn * PageSize;
+	int size1,i;
 	
-	if (requestVA >= codeBegin && requestVA < codeEnd){
-		if (requestVA + PageSize > codeEnd){
-			codeBegin
+	OpenFile *executable = fileSystem->Open(currentThread->userFileName);
+	
+	int swapIndex = 0;
+	int minHit = hitRecord[0];
+	
+	stats->numPageFaults++;
+	
+	for(i = 0; i < entrySize; i++){
+		if(!pgTableEntry[i].valid) {
+			swapIndex = i;
+			break;
+		}
+		if(hitRecord[i] < minHit) {
+			minHit = hitRecord[i];
+			swapIndex = i;
 		}
 	}
 	
+	//invalidate the tlb entry
+	for(i = 0; i < machine->tlb->bufferSize; i++){
+		if(machine->tlb->tlbTable[i].threadId == pgTableEntry[swapIndex].threadId && machine->tlb->tlbTable[i].virtualPage == pgTableEntry[swapIndex].virtualPage){
+			machine->tlb->tlbTable[i].valid = FALSE;
+		}
+	}
+
+	pgTableEntry[swapIndex].readOnly = FALSE;
+	pgTableEntry[swapIndex].threadId = currentThread->threadId;
+	pgTableEntry[swapIndex].virtualPage = vpn;
+	pgTableEntry[swapIndex].valid = TRUE;
+	hitRecord[swapIndex] = 1;
 	
-	
-	
+	if (requestVA >= codeBegin && requestVA < codeEnd){
+		// if the request page cross a segment
+		if (requestVA + PageSize > codeEnd){
+			size1 = codeEnd - requestVA;
+			executable->ReadAt(&(machine->mainMemory[swapIndex * PageSize]),
+			size1, currentThread->space->noffH.code.inFileAddr + requestVA - codeBegin);
+			if(currentThread->space->noffH.uninitData.size != 0){
+				executable->ReadAt(&(machine->mainMemory[swapIndex * PageSize+size1]),
+				PageSize - size1, currentThread->space->noffH.uninitData.inFileAddr);				
+			}
+		}
+		else{	//else just read the code page
+			executable->ReadAt(&(machine->mainMemory[swapIndex * PageSize]),PageSize, currentThread->space->noffH.code.inFileAddr + requestVA - codeBegin);
+			pgTableEntry[swapIndex].readOnly = TRUE;
+		}
+	}
+	else if(requestVA >= uninitDataBegin && requestVA < uninitDataEnd){
+		executable->ReadAt(&(machine->mainMemory[swapIndex * PageSize]),
+			PageSize, currentThread->space->noffH.uninitData.inFileAddr + requestVA - uninitDataBegin);		
+	}
+	else if(requestVA >= initDataBegin && requestVA < initDataEnd){
+		executable->ReadAt(&(machine->mainMemory[swapIndex * PageSize]),
+			PageSize, currentThread->space->noffH.initData.inFileAddr + requestVA - initDataBegin);		
+	}
+	delete executable;
 }
 
 

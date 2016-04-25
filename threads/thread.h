@@ -85,12 +85,13 @@ class Thread {
     // THEY MUST be in this position for SWITCH to work.
     int* stackTop;			 // the current stack pointer
     int machineState[MachineStateSize];  // all registers except for stackTop
-	int userId,threadId;
+	int userId;
 	static Thread* threadPool[MAX_ALLOWED_THREAD];		// index is the thread ID
 	int priority;
 	int timeSlice;
 
   public:
+	int threadId;
     Thread(char* debugName,int priority=0,int userId=0);		// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
