@@ -90,9 +90,8 @@ Machine::ReadMem(int addr, int size, int *value)
     int data;
     ExceptionType exception;
     int physicalAddress;
-    
     DEBUG('a', "Reading VA 0x%x, size %d\n", addr, size);
-    
+	
     exception = Translate(addr, &physicalAddress, size, FALSE);
     if (exception != NoException) {
 		machine->RaiseException(exception, addr);
@@ -392,6 +391,7 @@ PageTable::Swap(int vpn){
 	pgTableEntry[swapIndex].virtualPage = vpn;
 	pgTableEntry[swapIndex].valid = TRUE;
 	hitRecord[swapIndex] = 1;
+	printf("swaping number %d, vpn is %d\n",swapIndex,vpn);
 	
 	if (requestVA >= codeBegin && requestVA < codeEnd){
 		// if the request page cross a segment
@@ -401,21 +401,25 @@ PageTable::Swap(int vpn){
 			size1, currentThread->space->noffH.code.inFileAddr + requestVA - codeBegin);
 			if(currentThread->space->noffH.uninitData.size != 0){
 				executable->ReadAt(&(machine->mainMemory[swapIndex * PageSize+size1]),
-				PageSize - size1, currentThread->space->noffH.uninitData.inFileAddr);				
+				PageSize - size1, currentThread->space->noffH.uninitData.inFileAddr);
+				printf("request %d, reading file addr %d\n",requestVA,currentThread->space->noffH.uninitData.inFileAddr);
 			}
 		}
 		else{	//else just read the code page
 			executable->ReadAt(&(machine->mainMemory[swapIndex * PageSize]),PageSize, currentThread->space->noffH.code.inFileAddr + requestVA - codeBegin);
 			pgTableEntry[swapIndex].readOnly = TRUE;
+			printf("request %d, reading file addr %d\n",requestVA,currentThread->space->noffH.code.inFileAddr + requestVA - codeBegin);
 		}
 	}
 	else if(requestVA >= uninitDataBegin && requestVA < uninitDataEnd){
 		executable->ReadAt(&(machine->mainMemory[swapIndex * PageSize]),
-			PageSize, currentThread->space->noffH.uninitData.inFileAddr + requestVA - uninitDataBegin);		
+			PageSize, currentThread->space->noffH.uninitData.inFileAddr + requestVA - uninitDataBegin);
+		printf("request %d, reading file addr %d\n",requestVA,currentThread->space->noffH.uninitData.inFileAddr + requestVA - uninitDataBegin);
 	}
 	else if(requestVA >= initDataBegin && requestVA < initDataEnd){
 		executable->ReadAt(&(machine->mainMemory[swapIndex * PageSize]),
-			PageSize, currentThread->space->noffH.initData.inFileAddr + requestVA - initDataBegin);		
+			PageSize, currentThread->space->noffH.initData.inFileAddr + requestVA - initDataBegin);
+		printf("request %d, reading file addr %d\n",requestVA,currentThread->space->noffH.initData.inFileAddr + requestVA - initDataBegin);
 	}
 	delete executable;
 }

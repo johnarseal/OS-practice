@@ -27,6 +27,15 @@
 #include "system.h"
 #include "filehdr.h"
 
+
+//the initializer of SecondHeader
+SecondHeader::SecondHeader(){
+	for(int i = 0; i < SectorDirNum; i++){
+		dataSectors[i] = -1;
+	}
+}
+
+
 //----------------------------------------------------------------------
 // FileHeader::Allocate
 // 	Initialize a fresh file header for a newly created file.
@@ -43,12 +52,40 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
     numBytes = fileSize;
     numSectors  = divRoundUp(fileSize, SectorSize);
-    if (freeMap->NumClear() < numSectors)
-	return FALSE;		// not enough space
+	int sectorRemain = freeMap->NumClear();
+	if(numSectors <= FirstDirNum){
+		if (sectorRemain < numSectors){
+			return FALSE;		// not enough space
+		}
 
-    for (int i = 0; i < numSectors; i++)
-	dataSectors[i] = freeMap->Find();
-    return TRUE;
+   		for (int i = 0; i < numSectors; i++){
+			dataSectors[i] = freeMap->Find();
+		}
+   		return TRUE;	
+	}
+	else{
+		int overNum = numSectors - FirstDirNum;
+		int secondNum = divRoundUp(overNum, SectorDirNum);
+		int hdrNum = FirstDirNum + secondNum;
+		if(hdrNum > NumDirect || secondNum + numSectors > sectorRemain){
+			return FALSE;
+		}
+		else{
+			for(int i = 0; i < FirstDirNum + secondNum; i++){
+				dataSectors[i] = freeMap->Find();
+			}
+			int curSector = numSectors - FirstDirNum;
+			for(int i = FirstDirNum; i < FirstDirNum + secondNum; i++){
+				SecondHeader* sh = new SecondHeader;
+				for(int j = 0; curSector > 0 && j < SectorDirNum; j++,curSector--){
+					sh->dataSectors[j] = freeMap->Find();
+				}	
+				sh->WriteBack(dataSectors[i]);
+				delete sh;
+			} 
+		}
+		
+	}
 }
 
 //----------------------------------------------------------------------
@@ -61,10 +98,34 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
-    for (int i = 0; i < numSectors; i++) {
-	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
-	freeMap->Clear((int) dataSectors[i]);
-    }
+	int i;
+	if(numSectors < FirstDirNum){
+    	for (i = 0; i < numSectors; i++) {
+			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+			freeMap->Clear((int) dataSectors[i]);
+		}
+    }	
+	else{
+	   	int overNum = numSectors - FirstDirNum;
+		int secondNum = divRoundUp(overNum,SectorDirNum);
+		for (i = 0; i < FirstDirNum; i++) {
+			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+			freeMap->Clear((int) dataSectors[i]);
+		}
+		for(i = FirstDirNum; i < FirstDirNum + secondNum; i++){
+			ASSERT(freeMap->Test((int) dataSectors[i]));
+			SecondHeader *sh = new SecondHeader;
+			sh->FetchFrom(dataSectors[i]);
+			for(int j = 0; j < SectorDirNum; j++){
+				if(sh->dataSectors[j] >= 0){
+					ASSERT(freeMap->Test((int)(sh->dataSectors[j])));  // ought to be marked!
+					freeMap->Clear((int)(sh->dataSectors[j]));
+				}
+			}
+			freeMap->Clear((int)dataSectors[i]);
+			delete sh;
+		}
+	}
 }
 
 //----------------------------------------------------------------------
@@ -80,6 +141,10 @@ FileHeader::FetchFrom(int sector)
     synchDisk->ReadSector(sector, (char *)this);
 }
 
+void
+SecondHeader::FetchFrom(int sector){
+	synchDisk->ReadSector(sector,(char *)this);
+}
 //----------------------------------------------------------------------
 // FileHeader::WriteBack
 // 	Write the modified contents of the file header back to disk. 
@@ -90,7 +155,13 @@ FileHeader::FetchFrom(int sector)
 void
 FileHeader::WriteBack(int sector)
 {
-    synchDisk->WriteSector(sector, (char *)this); 
+    sectorPos = sector;
+	synchDisk->WriteSector(sector, (char *)this); 
+}
+
+void
+SecondHeader::WriteBack(int sector){
+	synchDisk->WriteSector(sector,(char *)this);
 }
 
 //----------------------------------------------------------------------
@@ -106,7 +177,18 @@ FileHeader::WriteBack(int sector)
 int
 FileHeader::ByteToSector(int offset)
 {
-    return(dataSectors[offset / SectorSize]);
+	int sectorInd = offset / SectorSize;
+	if(sectorInd < FirstDirNum){
+		return dataSectors[sectorInd];
+	}
+	else{
+		SecondHeader *sh = new SecondHeader;
+		sh->FetchFrom(dataSectors[FirstDirNum + (sectorInd-FirstDirNum) / SectorDirNum]);
+		int res = sh->dataSectors[(sectorInd-FirstDirNum) % SectorDirNum];
+		delete sh;
+		return res;
+	}	
+
 }
 
 //----------------------------------------------------------------------

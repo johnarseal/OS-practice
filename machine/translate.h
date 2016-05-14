@@ -60,8 +60,10 @@ class PageTable {
 	TranslationEntry *pgTableEntry;
 	int *hitRecord;
 	int entrySize;
+	//get a page from the page table with threadId and vpn
 	TranslationEntry *getPage(int threadId, int vpn);
-	void Swap(int vpn);
+	
+	void Swap(int vpn);			//swap a page from the disk when page fault
 	
 	PageTable(int bfSize);		// initialize a Thread 
     ~PageTable();

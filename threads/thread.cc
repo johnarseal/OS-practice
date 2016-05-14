@@ -379,4 +379,25 @@ Thread::RestoreUserState()
     for (int i = 0; i < NumTotalRegs; i++)
 	machine->WriteRegister(i, userRegisters[i]);
 }
+
+void suspendIntHandler(int arg){
+	Thread *t = (Thread*)arg;
+	scheduler->ReadyToRun(t);
+}
+
+void Thread::Suspend(int tick){
+	if(tick <= 0){
+		return;
+	}
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	
+	interrupt->Schedule(suspendIntHandler,(int)this,tick,SuspendInt);
+	
+	Thread* nextThread;
+	while((nextThread = scheduler->FindNextToRun()) == NULL){
+		interrupt->Idle();
+	}
+	scheduler->Run(nextThread);
+	interrupt->SetLevel(oldLevel);
+}
 #endif

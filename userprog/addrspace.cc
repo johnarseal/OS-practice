@@ -70,6 +70,10 @@ AddrSpace::AddrSpace(OpenFile *executable)
     	SwapHeader(&noffH);
     ASSERT(noffH.noffMagic == NOFFMAGIC);
 
+	printf("\ncode starts virtual starts at %d, size %d, fileAddr %d\n", noffH.code.virtualAddr,noffH.code.size,noffH.code.inFileAddr);
+	printf("initData starts virtual starts at %d, size %d, fileAddr %d\n", noffH.initData.virtualAddr,noffH.initData.size,noffH.initData.inFileAddr);
+	printf("unInitData starts virtual starts at %d, size %d, fileAddr %d\n", noffH.uninitData.virtualAddr,noffH.uninitData.size,noffH.uninitData.inFileAddr);
+	
 	// how big is address space?
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
 			+ UserStackSize;	// we need to increase the size

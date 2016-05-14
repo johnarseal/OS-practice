@@ -76,6 +76,8 @@ OpenFile::Read(char *into, int numBytes)
 {
    int result = ReadAt(into, numBytes, seekPosition);
    seekPosition += result;
+	hdr->lastUpTime = time(NULL);
+	hdr->WriteBack(hdr->sectorPos);
    return result;
 }
 
@@ -84,6 +86,9 @@ OpenFile::Write(char *into, int numBytes)
 {
    int result = WriteAt(into, numBytes, seekPosition);
    seekPosition += result;
+	hdr->lastUpTime = time(NULL);
+	hdr->WriteBack(hdr->sectorPos);
+
    return result;
 }
 

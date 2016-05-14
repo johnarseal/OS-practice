@@ -24,7 +24,7 @@
 #include "utility.h"
 #include "filehdr.h"
 #include "directory.h"
-
+#include<string.h>
 //----------------------------------------------------------------------
 // Directory::Directory
 // 	Initialize a directory; initially, the directory is completely
@@ -90,9 +90,12 @@ Directory::WriteBack(OpenFile *file)
 int
 Directory::FindIndex(char *name)
 {
-    for (int i = 0; i < tableSize; i++)
-        if (table[i].inUse && !strncmp(table[i].name, name, FileNameMaxLen))
-	    return i;
+    unsigned int nameLen = strlen(name); 
+	for (int i = 0; i < tableSize; i++){
+    		if (table[i].inUse && !strcmp(table[i].name, name)){
+	    		return i;
+		}
+	}
     return -1;		// name not in directory
 }
 
@@ -127,17 +130,20 @@ Directory::Find(char *name)
 //----------------------------------------------------------------------
 
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector,int type)
 { 
     if (FindIndex(name) != -1)
 	return FALSE;
 
+	unsigned int numLen = strlen(name);
     for (int i = 0; i < tableSize; i++)
         if (!table[i].inUse) {
             table[i].inUse = TRUE;
-            strncpy(table[i].name, name, FileNameMaxLen); 
+			table[i].name = new char[numLen];
+            strcpy(table[i].name, name); 
             table[i].sector = newSector;
-        return TRUE;
+			table[i].type = type;
+        	return TRUE;
 	}
     return FALSE;	// no space.  Fix when we have extensible files.
 }
