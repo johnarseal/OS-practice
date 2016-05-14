@@ -146,7 +146,13 @@ Initialize(int argc, char **argv)
 
     interrupt->Enable();
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
-    
+	
+	
+#ifdef THREADS
+	printf("THREADS defined\n");
+#else
+	printf("THREADS not defined\n");
+#endif	
 #ifdef USER_PROGRAM
 	machine = new Machine(debugUserProg);	// this must come first
 	printf("USER_PROGRAM defined\n");

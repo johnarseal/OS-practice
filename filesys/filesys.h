@@ -37,6 +37,7 @@
 
 #include "copyright.h"
 #include "openfile.h"
+#include "bitmap.h"
 
 #ifdef FILESYS_STUB 		// Temporarily implement file system calls as 
 				// calls to UNIX, until the real file system
@@ -83,11 +84,17 @@ class FileSystem {
 
     bool Remove(char *name);  		// Delete a file (UNIX unlink)
 
-    void List();			// List all the files in the file system
+    void List(OpenFile* dirFile, int padding);	// List all the files in the file system
 
+	void ListRoot();
+	
     void Print();			// List all the files and their contents
 	
 	int DirTranslate(char *name);	//get the sector of the file with full path 'name'
+	
+	int AllocateDir(BitMap *freeMap);
+	
+	void MyFileTest(int num);
 
   private:
    OpenFile* freeMapFile;		// Bit map of free disk blocks,

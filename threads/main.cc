@@ -57,6 +57,7 @@
 extern int testnum;
 #endif
 
+
 // External functions used by this file
 
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
@@ -86,24 +87,7 @@ main(int argc, char **argv)
 
     DEBUG('t', "Entering main");
     (void) Initialize(argc, argv);
-    
-#ifdef THREADS
-    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
-      argCount = 1;
-      switch (argv[0][1]) {
-      case 'q':
-        testnum = atoi(argv[1]);
-        argCount++;
-        break;
-      default:
-        testnum = 1;
-        break;
-      }
-    }
-
-    ThreadTest();
-#endif
-
+	
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 	argCount = 1;
         if (!strcmp(*argv, "-z"))               // print copyright
@@ -114,38 +98,40 @@ main(int argc, char **argv)
             StartProcess(*(argv + 1));
             argCount = 2;
         } else if (!strcmp(*argv, "-c")) {      // test the console
-	    if (argc == 1)
-	        ConsoleTest(NULL, NULL);
-	    else {
-		ASSERT(argc > 2);
-	        ConsoleTest(*(argv + 1), *(argv + 2));
-	        argCount = 3;
-	    }
-	    interrupt->Halt();		// once we start the console, then 
-					// Nachos will loop forever waiting 
-					// for console input
-	}
+			if (argc == 1)
+				ConsoleTest(NULL, NULL);
+			else {
+			ASSERT(argc > 2);
+				ConsoleTest(*(argv + 1), *(argv + 2));
+				argCount = 3;
+			}
+			interrupt->Halt();		// once we start the console, then 
+						// Nachos will loop forever waiting 
+						// for console input
+		}
 #endif // USER_PROGRAM
 #ifdef FILESYS
-	if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
-	    ASSERT(argc > 2);
-	    Copy(*(argv + 1), *(argv + 2));
-	    argCount = 3;
-	} else if (!strcmp(*argv, "-p")) {	// print a Nachos file
-	    ASSERT(argc > 1);
-	    Print(*(argv + 1));
-	    argCount = 2;
-	} else if (!strcmp(*argv, "-r")) {	// remove Nachos file
-	    ASSERT(argc > 1);
-	    fileSystem->Remove(*(argv + 1));
-	    argCount = 2;
-	} else if (!strcmp(*argv, "-l")) {	// list Nachos directory
-            fileSystem->List();
-	} else if (!strcmp(*argv, "-D")) {	// print entire filesystem
-            fileSystem->Print();
-	} else if (!strcmp(*argv, "-t")) {	// performance test
-            PerformanceTest();
-	}
+		if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
+			ASSERT(argc > 2);
+			Copy(*(argv + 1), *(argv + 2));
+			argCount = 3;
+		} else if (!strcmp(*argv, "-p")) {	// print a Nachos file
+			ASSERT(argc > 1);
+			Print(*(argv + 1));
+			argCount = 2;
+		} else if (!strcmp(*argv, "-r")) {	// remove Nachos file
+			ASSERT(argc > 1);
+			fileSystem->Remove(*(argv + 1));
+			argCount = 2;
+		} else if (!strcmp(*argv, "-D")) {	// print entire filesystem
+				fileSystem->Print();
+		} else if (!strcmp(*argv, "-t")) {	// performance test
+				PerformanceTest();
+		}
+		else if (!strcmp(*argv, "-q")) {	// performance test
+			ASSERT(argc > 1);
+			fileSystem->MyFileTest(atoi(argv[1]));
+		}
 #endif // FILESYS
 #ifdef NETWORK
         if (!strcmp(*argv, "-o")) {
@@ -157,6 +143,19 @@ main(int argc, char **argv)
             argCount = 2;
         }
 #endif // NETWORK
+#ifdef THREADS
+		argCount = 1;
+		switch (argv[0][1]) {
+			case 'q':
+				testnum = atoi(argv[1]);
+				argCount++;
+				break;
+			default:
+				testnum = 1;
+				break;
+		}
+		ThreadTest();
+#endif // THREADS
     }
 
     currentThread->Finish();	// NOTE: if the procedure "main" 

@@ -260,6 +260,7 @@ FileSystem::Create(char *name, int initialSize,int type)
     directory->FetchFrom(dirFile);
 	
     if (DirTranslate(name) != -1){
+		printf("name repeated!\n");
 		success = FALSE;			// file is already in directory
 	}
     else {
@@ -428,15 +429,39 @@ FileSystem::Remove(char *name)
 //----------------------------------------------------------------------
 
 void
-FileSystem::List()
+FileSystem::List(OpenFile* dirFile, int padding=0)
 {
     Directory *directory = new Directory(NumDirEntries);
 
-    directory->FetchFrom(directoryFile);
-    directory->List();
-    delete directory;
+    directory->FetchFrom(dirFile);
+	
+	for (int i = 0; i < directory->tableSize; i++){
+		if (directory->table[i].inUse){
+			for(int j = 0; j < padding; j++){
+				printf("  ");
+			}
+			printf("%s\n", directory->table[i].name);
+			if(directory->table[i].type == 1){
+				List(new OpenFile(directory->table[i].sector),padding+1);
+			}
+		}
+	}
+
+	delete directory;
 }
 
+// only list the root
+void
+FileSystem::ListRoot()
+{
+    Directory *directory = new Directory(NumDirEntries);
+
+	directory->FetchFrom(directoryFile);
+    
+	directory->List();
+
+	delete directory;
+}
 //----------------------------------------------------------------------
 // FileSystem::Print
 // 	Print everything about the file system:
@@ -474,3 +499,18 @@ FileSystem::Print()
     delete freeMap;
     delete directory;
 } 
+
+void
+FileSystem::MyFileTest(int num){
+	if(num == 0){
+		Create("/firstdir/",0,1);
+		Create("/firstdir/a",2,0);
+		Create("/firstdir/b",7,0);
+		Create("/firstdir/ss/b",7,0);
+		Create("/second/s/v",7,0);
+		List(directoryFile);
+	}
+	else if(num == 1){
+		ListRoot();
+	}
+}
